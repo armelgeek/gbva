@@ -3,7 +3,6 @@
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
-var SequelizeGuard = require('sequelize-guard');
 
 const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
@@ -80,10 +79,8 @@ db.commande.belongsTo(db.emprunteur, {
   },
   as: "emprunter",
 });
-let guard = new SequelizeGuard(sequelize, {});
 db.parametre=require("./parametre")(sequelize,Sequelize.DataTypes)
 db.approvisionnement=require("./approvisionnement")(sequelize,Sequelize.DataTypes);
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
-db.guard = guard;
 module.exports = db;
