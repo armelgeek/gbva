@@ -31,6 +31,7 @@ router.post("/add-from-magasin",urlencodedParser, commandeController.addFromMaga
 
 router.put("/update-from-magasin",urlencodedParser, commandeController.updateFromMagasin);
 router.post("/delete-from-magasin", commandeController.deleteFromMagasin);
+router.post("/change-from-magasin", commandeController.changeFromMagasin);
 
 router.get("/get-approv-by-date", approvController.approvByDate);
 
@@ -43,6 +44,7 @@ router.get("/sortie", commandeController.getSortieProduit);
 router.get("/rupture/stock", productController.getProductRuptureStock);
 router.get("/credit", commandeController.getCredit);
 router.get("/vente-cva", commandeController.getCommandeCVa);
+router.get("/operation-vente-cva", commandeController.getOperationCommandeCVA);
 router.get("/cva", commandeController.getCVa);
 
 router.get("/direct", commandeController.getCommandeDirect);

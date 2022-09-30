@@ -1556,6 +1556,34 @@ exports.updateFromMagasin = async (req, res, next) => {
     });
 };
 
+exports.changeFromMagasin = async (req, res, next) => {
+  const commandea = req.body.commande;
+  await sequelize
+    .transaction(async (t) => {
+      await db.commande.update(
+        {
+          isdeleted: true,
+          deletedat: moment(new Date("2021-01-01")),
+        },
+        {
+          transaction: t,
+          where: {
+            id: commandea.id,
+          },
+        }
+      );
+    })
+    .then(function (result) {
+      res.send({
+        message: "changer avec success",
+      });
+    })
+    .catch(function (err) {
+      console.log("NO!!!");
+      return next(err);
+    });
+  //console.log(req);*/
+};
 exports.deleteFromMagasin = async (req, res, next) => {
   const commandea = req.body.commande;
   const commander = req.body.original;
@@ -3529,7 +3557,17 @@ function SeulLeCCAChangeLeLitreEtLaQttParCommandeSupEgal(realproduct, diffcc) {
     }
   }
 }
+const calculateTotalX = (arr) => {
+  if (!arr || arr?.length === 0) return 0;
 
+  const total = arr.reduce((acc, val) => acc + val, 0);
+
+  return total;
+};
+
+const calculeTotalAvecRemise = (arr, remise) => {
+  return calculateTotalX(arr) - remise;
+};
 function whenDeleteHandle(whendelete, realproduct, initialCommande) {
   whendelete.quantityBruteCVA = Number(realproduct.quantityBruteCVA);
   whendelete.quantityCCCVA = Number(initialCommande.quantityCCCVA);
@@ -3539,70 +3577,192 @@ function whenDeleteHandle(whendelete, realproduct, initialCommande) {
   whendelete.qttbylitre = initialCommande.qttbylitre;
 }
 exports.getCommandeBetween2Dates = async (req, res) => {
-  const { id, prices } = req.body;
+  const { id, prices, type } = req.body;
   const recap = [];
-  // try {
-  await sequelize.transaction(async (t) => {
-    if (prices.length > 0) {
-      for (const price of prices) {
-        let commandes = [];
-        await db.commande
-          .findAndCountAll({
-            where: {
-              dateCom: {
-                [Op.gte]: moment(price.deb),
-                [Op.lte]: moment(price.fin),
+  if (type == 2) {
+    await sequelize.transaction(async (t) => {
+      if (prices.length > 0) {
+        for (const price of prices) {
+          let approvs = [];
+          await db.approvisionnement
+            .findAndCountAll({
+              where: {
+                dateCom: {
+                  [Op.gte]: moment(price.deb),
+                  [Op.lte]: moment(price.fin),
+                },
               },
-            },
-          })
-          .then(async ({ rows, count }) => {
-            if (rows.length > 0) {
-              for (const r of rows) {
-                let contenu = r.contenu.slice();
-                contenu.forEach((con, index) => {
-                  if (con.id == id) {
-                 
-                    let lp = contenu[index].prixVente;
-                    contenu[index].prixVente = price.montant * 1;
-                    commandes.push({
-                      id: r.id,
-                      lastPrice: lp,
-                      newPrice: price.montant * 1,
-                      contenu: contenu,
-                      createdAt: r.createdAt,
-                    });
-                  }
+            })
+            .then(async ({ rows, count }) => {
+              console.log("count", count);
+              if (rows.length > 0) {
+                for (const r of rows) {
+                  let contenu = r.contenu.slice();
+                  contenu.forEach((con, index) => {
+                    if (con.id == id) {
+                      let lp = contenu[index].prixFournisseur;
+                      contenu[index].prixFournisseur =  price.montant==undefined || price.montant * 1 == 0 || price.montant == ""
+                      ? contenu[index].prixFournisseur
+                      : price.montant * 1;
+
+                      approvs.push({
+                        id: r.id,
+                        lastPrice: lp,
+                        newPrice: price.montant==undefined || price.montant * 1 == 0 || price.montant == ""
+                        ? contenu[index].prixFournisseur
+                        : price.montant * 1,
+                        lastPriceCC: 'no',
+                        lastPriceLitre: 'no',
+                        newPriceCC:'no',
+                        newPriceLitre:'no',
+                        contenu: contenu,
+                        remise: r.remise,
+                        createdAt: r.createdAt,
+                      });
+                    }
+                  });
+                }
+              }
+              if (approvs.length > 0) {
+                console.log("has approvs", deduplicationList(approvs));
+                let notDupl = deduplicationList(approvs);
+                recap.push({
+                  deb: price.deb,
+                  fin: price.fin,
+                  data: notDupl,
                 });
+
+                for (const com of notDupl) {
+                  await db.approvisionnement.update(
+                    {
+                      contenu: com.contenu,
+                      totalht: calculateTotalX(
+                        com.contenu.map(
+                          (product) =>
+                            product.prixFournisseur *
+                              product.quantityParProduct -
+                            product.remise
+                        )
+                      ),
+                      total: calculeTotalAvecRemise(
+                        com.contenu.map(
+                          (product) =>
+                            product.prixFournisseur *
+                              product.quantityParProduct -
+                            product.remise
+                        ),
+                        com.remise
+                      ),
+                    },
+                    {
+                      transaction: t,
+                      where: { id: com.id },
+                    }
+                  );
+                }
               }
-            }
-            if (commandes.length > 0) {
-              console.log("has commandes", deduplicationList(commandes));
-              let notDupl = deduplicationList(commandes);
-              recap.push({
-                deb: price.deb,
-                fin: price.fin,
-                data: notDupl,
-              });
-              for (const com of notDupl) {
-                await db.commande.update(
-                  {
-                    contenu: com.contenu,
-                  },
-                  {
-                    transaction: t,
-                    where: { id: com.id },
-                  }
-                );
-              }
-            }
-          })
-          .catch(function (err) {
-            console.log("NO!!!");
-            console.log(err);
-          });
+            })
+            .catch(function (err) {
+              console.log("NO!!!");
+              console.log(err);
+            });
+        }
       }
-    }
-  });
+    });
+  } else {
+    await sequelize.transaction(async (t) => {
+      if (prices.length > 0) {
+        for (const price of prices) {
+          let commandes = [];
+          await db.commande
+            .findAndCountAll({
+              where: {
+                type: ["vente-cva", "credit-cva"],
+                dateCom: {
+                  [Op.gte]: moment(price.deb),
+                  [Op.lte]: moment(price.fin),
+                },
+              },
+            })
+            .then(async ({ rows, count }) => {
+              if (rows.length > 0) {
+                for (const r of rows) {
+                  let contenu = r.contenu.slice();
+                  contenu.forEach((con, index) => {
+                    if (con.id == id) {
+                      let lp = contenu[index].prixVente;
+                      let lpcc = contenu[index].prixParCC;
+                      let lpl = contenu[index].prixlitre;
+                      console.log("price", price.prixparcc);
+                      contenu[index].prixVente =
+                      price.montant==undefined || price.montant * 1 == 0 || price.montant == ""
+                          ? contenu[index].prixVente
+                          : price.montant * 1;
+                      contenu[index].prixParCC =
+                      price.prixparcc==undefined || price.prixparcc * 1 == 0 || price.prixparcc == ""
+                          ? contenu[index].prixParCC
+                          : price.prixparcc * 1;
+
+                      contenu[index].prixlitre =
+                      price.prixlitre==undefined || price.prixlitre * 1 == 0 || price.prixlitre == ""
+                          ? contenu[index].prixlitre
+                          : price.prixlitre * 1;
+                      commandes.push({
+                        id: r.id,
+                        lastPrice: lp,
+                        lastPriceCC: lpcc,
+                        lastPriceLitre: lpl,
+                        newPrice:
+                        price.montant==undefined || price.montant * 1 == 0 || price.montant == ""
+                            ? contenu[index].prixVente
+                            : price.montant * 1,
+                        newPriceCC:
+                        price.prixparcc==undefined ||  price.prixparcc * 1 == 0 || price.prixparcc == ""
+                            ? contenu[index].prixParCC
+                            : price.prixparcc * 1,
+                        newPriceLitre:
+                        price.prixlitre==undefined ||  price.prixlitre * 1 == 0 || price.prixlitre == ""
+                            ? contenu[index].prixlitre
+                            : price.prixlitre * 1,
+                        contenu: contenu,
+                        createdAt: r.createdAt,
+                      });
+                    }
+                  });
+                }
+              }
+              if (commandes.length > 0) {
+                console.log("has commandes", deduplicationList(commandes));
+                let notDupl = deduplicationList(commandes);
+                recap.push({
+                  deb: price.deb,
+                  fin: price.fin,
+                  data: notDupl,
+                });
+                for (const com of notDupl) {
+                  await db.commande.update(
+                    {
+                      contenu: com.contenu,
+                    },
+                    {
+                      transaction: t,
+                      where: { id: com.id },
+                    }
+                  );
+                }
+              }
+            })
+            .catch(function (err) {
+              console.log("NO!!!");
+              console.log(err);
+            });
+        }
+      }
+    });
+  }
+
+  // try {
+  console.log(type);
   console.log("recap", recap);
   res.send({
     message: "Ok!!!",
@@ -3614,4 +3774,29 @@ exports.getCommandeBetween2Dates = async (req, res) => {
       commandes: [],
     });
   }**/
+};
+exports.getOperationCommandeCVA = async (req, res) => {
+  var whereStatement = {};
+  whereStatement.type = ["vente-cva", "credit-cva"];
+  whereStatement.isDeleted = true;
+  whereStatement.deletedat = {
+    [Op.notLike]: moment("2021-01-01"),
+  };
+  if (req.query.deb && req.query.fin) {
+    whereStatement.dateCom = {
+      [Op.gte]: moment(req.query.deb),
+      [Op.lte]: moment(req.query.fin),
+    };
+  }
+  res.send(
+    getPagingData(
+      await res.respond(
+        db.commande.findAndCountAll({
+          where: whereStatement,
+        })
+      ),
+      0,
+      10000
+    )
+  );
 };
