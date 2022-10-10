@@ -5,6 +5,7 @@
   "description": "Logiciel de gestion de cabinet veterinaire",
   "main": "index.js",
   "scripts": {
+    "start": "electron index.js",
     "lint": "echo \"No linting configured\"",
     "build": "electron-builder build --win --publish never",
     "deploy": "electron-builder build --win --publish always",
