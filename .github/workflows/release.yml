@@ -33,7 +33,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-
       - name: Install dependencies
-        run: rm -rf node_modules && yarn
+        run: yarn
       - name: Release package
         run: 
           yarn publish:win:setup:x64
@@ -65,7 +65,7 @@ jobs:
             ${{ runner.os }}-build-
 
       - name: Install dependencies
-        run: rm -rf node_modules && yarn
+        run: yarn
       - name: Release package
         run: 
           
