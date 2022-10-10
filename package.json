@@ -9,7 +9,19 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "echo \"No linting configured\""
+    "lint": "echo \"No linting configured\"",
+    "build": "electron-builder build --win --publish never",
+    "deploy": "electron-builder build --win --publish always",
+    "publish:win:setup:x64":"electron-builder -w=nsis --x64 -p always",
+    "publish:win:setup:x86":"electron-builder -w=nsis --ia32 -p onTagOrDraft",
+    "publish:win:setup:arm64":"electron-builder -w=nsis --arm64 -p onTagOrDraft",
+    "publish:win:setup:x86_64": "electron-builder -w=nsis --x64 --ia32 -p onTagOrDraft",
+    "publish:linux:deb:x64:always": "electron-builder -l=deb --x64 -p always",
+    "publish:linux:deb:x64": "electron-builder -l=deb --x64 -p onTagOrDraft",
+    "publish:linux:deb:x86": "electron-builder -l=deb --ia32 -p onTagOrDraft",
+    "publish:linux:deb:arm64": "electron-builder -l=deb --arm64 -p onTagOrDraft",
+    "publish:linux:deb:armv7l": "electron-builder -l=deb --armv7l -p onTagOrDraft",
+    "publish:linux:appImage": "electron-builder -l=AppImage -p onTagOrDraft"
   },
   "keywords": [],
   "author": {
@@ -17,47 +29,24 @@
     "email": "armelgeek5@gmail.com"
   },
   "license": "MIT",
-  "config": {
-    "forge": {
-      "packagerConfig": {},
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "CBVA"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "darwin"
-          ]
-        },
-        {
-          "name": "@electron-forge/maker-deb",
-          "config": {}
-        },
-        {
-          "name": "@electron-forge/maker-rpm",
-          "config": {}
-        }
-      ],
-      "publishers": [
-        {
-          "name": "@electron-forge/publisher-github",
-          "config": {
-            "repository": {
-              "owner": "armelgeek",
-              "name": "gbva",
-              "draft": true
-            }
-          }
-        }
+  "build": {
+    "appId": "mg.armelwanes.gbva.app",
+    "productName": "GBVA",
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    },
+    "win": {
+      "target": [
+        "NSIS"
       ]
     }
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.0",
+    "electron": "^12.0.1",
+    "electron-builder": "^19.6.1",
     "electron-updater": "^4.3.1",
     "ejs": "^2.5.6",
     "mysql": "^2.13.0",
@@ -83,14 +72,5 @@
     "query-string": "^7.0.1",
     "sequelize": "^6.6.5",
     "uuid": "^8.3.2"
-  },
-  "devDependencies": {
-    "@electron-forge/cli": "^6.0.0-beta.60",
-    "@electron-forge/maker-deb": "^6.0.0-beta.60",
-    "@electron-forge/maker-rpm": "^6.0.0-beta.60",
-    "@electron-forge/maker-squirrel": "^6.0.0-beta.60",
-    "@electron-forge/maker-zip": "^6.0.0-beta.60",
-    "@electron-forge/publisher-github": "^6.0.0-beta.60",
-    "electron": "11.1.1"
   }
 }
