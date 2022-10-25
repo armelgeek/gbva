@@ -38,7 +38,8 @@
     "win": {
       "target": [
         "NSIS"
-      ]
+      ],
+      "icon": "icon/icon.jpg"
     }
   },
   "devDependencies": {
