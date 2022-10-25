@@ -1,7 +1,7 @@
 {
   "name": "CBVA",
   "productName": "CBVA",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Logiciel de gestion de cabinet veterinaire",
   "main": "index.js",
   "scripts": {
@@ -33,13 +33,14 @@
       "target": [
         "AppImage",
         "deb"
-      ]
+      ],
+      "icon": "icon/icon.ico"
     },
     "win": {
       "target": [
         "NSIS"
       ],
-      "icon": "icon/icon.jpg"
+      "icon": "icon/icon.ico"
     }
   },
   "devDependencies": {
