@@ -2,7 +2,7 @@
   "name": "CBVA",
   "productName": "CBVA",
   "version": "1.0.2",
-  "description": "Logiciel de gestion de cabinet veterinaire",
+  "description": "Logiciel de gestion de cabinet veterinaires",
   "main": "index.js",
   "scripts": {
     "start": "electron index.js",
